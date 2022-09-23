@@ -6,7 +6,7 @@ const { MongoClient } = require('mongodb')
 
 const { start } = require('../lib/core.js')
 
-const setupMongoCollection = async (mongodbUrl, dbName, collectionName, initialContent) => {
+const setupMongoCollection = async ({ mongodbUrl, dbName, collectionName }, initialContent) => {
   const client = new MongoClient(mongodbUrl)
   await client.connect()
   const db = client.db(dbName)
@@ -15,6 +15,20 @@ const setupMongoCollection = async (mongodbUrl, dbName, collectionName, initialC
   await collection.insertMany(initialContent)
   return client
 }
+
+const getMongoContent = async (mongoClient, { dbName, collectionName }) => {
+  return (await mongoClient.db(dbName).collection(collectionName).find().toArray())
+  // eslint-disable-next-line no-unused-vars
+    .map(({ _id, ...fields }) => fields)
+}
+
+const generateNock = (config, nockResponseFile) => {
+  const { url } = config.source
+  const parsedUrl = new URL(url)
+  return nock(parsedUrl.origin)
+    .get(`${parsedUrl.pathname}${parsedUrl.search}`)
+    .replyWithFile(200, nockResponseFile, { 'Content-Type': 'text/csv' })
+} 
 
 tap.test('simple scraping from csv to mongo', async(test) => {
   const config = {
@@ -29,14 +43,7 @@ tap.test('simple scraping from csv to mongo', async(test) => {
       }
     }
   }
-
-  const { url } = config.source
-  const parsedUrl = new URL(url)
-  const { mongodbUrl, dbName, collectionName } = config.target.config
-  const sourceMock = nock(parsedUrl.origin)
-    .get(`${parsedUrl.pathname}${parsedUrl.search}`)
-    .replyWithFile(200, './tests/data/prec_simple.csv', { 'Content-Type': 'text/csv' })
-
+  const sourceMock = generateNock(config, './tests/data/prec_simple.csv')
   const initialMongoContent = [
     {
       'gg/mm/aaaa': '10/06/1994',
@@ -44,10 +51,8 @@ tap.test('simple scraping from csv to mongo', async(test) => {
       'Tipo Dato': 'V'
     },
   ]
-  
-  const mongoClient = await setupMongoCollection(mongodbUrl, dbName, collectionName, initialMongoContent)
+  const mongoClient = await setupMongoCollection(config.target.config, initialMongoContent)
   await start(config)
-
   const expectedMongoContent = [
     {
       'gg/mm/aaaa': '10/06/1994',
@@ -65,9 +70,7 @@ tap.test('simple scraping from csv to mongo', async(test) => {
       'Tipo Dato': 'V'
     }
   ]
-  const actualMongoContent = (await mongoClient.db(dbName).collection(collectionName).find().toArray())
-  // eslint-disable-next-line no-unused-vars
-    .map(({ _id, ...fields }) => fields)
+  const actualMongoContent = await getMongoContent(mongoClient, config.target.config)
   
   test.strictSame(actualMongoContent, expectedMongoContent)
   test.ok(sourceMock.isDone())
@@ -102,13 +105,7 @@ tap.test('simple scraping with field renaming from csv to mongo', async(test) =>
       }
     }
   }
-
-  const { url } = config.source
-  const parsedUrl = new URL(url)
-  const { mongodbUrl, dbName, collectionName } = config.target.config
-  const sourceMock = nock(parsedUrl.origin)
-    .get(`${parsedUrl.pathname}${parsedUrl.search}`)
-    .replyWithFile(200, './tests/data/prec_simple.csv', { 'Content-Type': 'text/csv' })
+  const sourceMock = generateNock(config, './tests/data/prec_simple.csv')
 
   const initialMongoContent = [
     {
@@ -118,7 +115,7 @@ tap.test('simple scraping with field renaming from csv to mongo', async(test) =>
     },
   ]
   
-  const mongoClient = await setupMongoCollection(mongodbUrl, dbName, collectionName, initialMongoContent)
+  const mongoClient = await setupMongoCollection(config.target.config, initialMongoContent)
   await start(config)
 
   const expectedMongoContent = [
@@ -138,15 +135,14 @@ tap.test('simple scraping with field renaming from csv to mongo', async(test) =>
       type: 'V'
     }
   ]
-  const actualMongoContent = (await mongoClient.db(dbName).collection(collectionName).find().toArray())
-  // eslint-disable-next-line no-unused-vars
-    .map(({ _id, ...fields }) => fields)
+  const actualMongoContent = await getMongoContent(mongoClient, config.target.config)
   
   test.strictSame(actualMongoContent, expectedMongoContent)
   test.ok(sourceMock.isDone())
 
   await mongoClient.close()
 })
+
 tap.test('simple scraping with field filter from csv to mongo', async(test) => {
   const config = {
     source: {
@@ -170,13 +166,7 @@ tap.test('simple scraping with field filter from csv to mongo', async(test) => {
       }
     }
   }
-
-  const { url } = config.source
-  const parsedUrl = new URL(url)
-  const { mongodbUrl, dbName, collectionName } = config.target.config
-  const sourceMock = nock(parsedUrl.origin)
-    .get(`${parsedUrl.pathname}${parsedUrl.search}`)
-    .replyWithFile(200, './tests/data/prec_simple.csv', { 'Content-Type': 'text/csv' })
+  const sourceMock = generateNock(config, './tests/data/prec_simple.csv')
 
   const initialMongoContent = [
     {
@@ -185,7 +175,7 @@ tap.test('simple scraping with field filter from csv to mongo', async(test) => {
     },
   ]
   
-  const mongoClient = await setupMongoCollection(mongodbUrl, dbName, collectionName, initialMongoContent)
+  const mongoClient = await setupMongoCollection(config.target.config, initialMongoContent)
   await start(config)
 
   const expectedMongoContent = [
@@ -202,9 +192,7 @@ tap.test('simple scraping with field filter from csv to mongo', async(test) => {
       'value [mm]': '21,0',
     }
   ]
-  const actualMongoContent = (await mongoClient.db(dbName).collection(collectionName).find().toArray())
-  // eslint-disable-next-line no-unused-vars
-    .map(({ _id, ...fields }) => fields)
+  const actualMongoContent = await getMongoContent(mongoClient, config.target.config)
   
   test.strictSame(actualMongoContent, expectedMongoContent)
   test.ok(sourceMock.isDone())

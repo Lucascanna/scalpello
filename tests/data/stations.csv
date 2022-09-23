@@ -1,0 +1,4 @@
+"IDStazione";"StazioneExtra";"Nome";"Comune";"Provincia";"Fiume";"Strumento";"Unita' Misura";"IDSensoreRete";"LAT [°]";"LON [°]";"GB E [m]";"GB N [m]";"Quota";"QuotaTerra"
+TOS19000601;0;5A;Cecina;LI;;freatimetro;m;761579;43.3324947906744;10.496578526645358;1621354.57;4798842.14;7.70;0.00
+TOS19000601;0;5A;Cecina;LI;;qualita;microS/cm;761585;43.3324947906744;10.496578526645358;1621354.57;4798842.14;7.70;0.00
+TOS19000601;0;5A;Cecina;LI;;termometro acqua;�C;761583;43.3324947906744;10.496578526645358;1621354.57;4798842.14;7.70;0.00
