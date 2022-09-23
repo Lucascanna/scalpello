@@ -4,9 +4,10 @@ The universal scraper
 
 # TODO features
 
+* nested scraping
+* upsert on DB
 * HTTP interface
 * Docker container
-* nested scraping
 * fields mapping
 * scraping from HTML
 * multi scraping
